@@ -1,0 +1,881 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Proton Playground</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Figtree:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: sticker-style lab bench. Header with floating molecule, tab strip, one game board at a time, quiz pop-up shared by all games. */
+:root{
+  --bg:#e9f6ff; --bg2:#d5eaff; --surface:#ffffff; --ink:#10223d; --muted:#4d6483; --line:#c3d8ef;
+  --edge:#10223d; --shadow:#10223d;
+  --acid:#ff3b6b; --acid-soft:#ffdfe8; --base:#2f6bff; --base-soft:#dbe6ff;
+  --neutral:#0fb27f; --neutral-soft:#d3f6e8; --sun:#ffb800; --sun-soft:#fff0c2; --violet:#8b5cf6; --violet-soft:#ebe3ff;
+  --f-display:"Bricolage Grotesque","Trebuchet MS",system-ui,sans-serif;
+  --f-body:"Figtree",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"DM Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0b1430; --bg2:#101d45; --surface:#16255a; --ink:#eaf2ff; --muted:#a4b6dc; --line:#2c3f80;
+    --edge:#7f9cf0; --shadow:#040919;
+    --acid:#ff5c86; --acid-soft:#4a1f3b; --base:#5b8cff; --base-soft:#1f3470;
+    --neutral:#2fd6a0; --neutral-soft:#0f4a43; --sun:#ffc933; --sun-soft:#4a4015; --violet:#a78bfa; --violet-soft:#35296b;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0b1430; --bg2:#101d45; --surface:#16255a; --ink:#eaf2ff; --muted:#a4b6dc; --line:#2c3f80;
+  --edge:#7f9cf0; --shadow:#040919;
+  --acid:#ff5c86; --acid-soft:#4a1f3b; --base:#5b8cff; --base-soft:#1f3470;
+  --neutral:#2fd6a0; --neutral-soft:#0f4a43; --sun:#ffc933; --sun-soft:#4a4015; --violet:#a78bfa; --violet-soft:#35296b;
+  color-scheme:dark;
+}
+[hidden]{display:none!important}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  background:var(--bg); color:var(--ink); font-family:var(--f-body); font-size:16px; line-height:1.5;
+  padding-block:20px 48px;
+  padding-left:max(16px,env(safe-area-inset-left,0px)); padding-right:max(16px,env(safe-area-inset-right,0px));
+  background-image:radial-gradient(var(--line) 1.4px, transparent 1.6px); background-size:26px 26px;
+  min-height:100%;
+}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible,.mz:focus-visible{outline:3px solid var(--violet);outline-offset:2px}
+.wrap{max-width:1000px;margin:0 auto;position:relative;z-index:1}
+h1,h2,h3{font-family:var(--f-display);text-wrap:balance;margin:0;line-height:1.1}
+.mono{font-family:var(--f-mono)}
+
+/* floating background atoms */
+.drift{position:fixed;inset:0;pointer-events:none;z-index:-1;overflow:hidden}
+.drift i{position:absolute;border-radius:50%;opacity:.38;animation:bob 9s ease-in-out infinite;
+  background:radial-gradient(circle at 32% 28%,color-mix(in srgb,var(--c) 50%,#fff),var(--c) 60%)}
+@keyframes bob{50%{transform:translateY(-22px) translateX(8px)}}
+@media (prefers-reduced-motion:reduce){.drift i,.hero svg *{animation:none!important}}
+
+/* header */
+.hero{display:flex;gap:16px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-bottom:18px}
+.hero-text{flex:1 1 320px;min-width:0}
+.eyebrow{font-family:var(--f-mono);font-size:.78rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.hero h1{font-size:clamp(2.2rem,7vw,3.6rem);font-weight:800;letter-spacing:-.02em;margin:4px 0 8px}
+.hero h1 .a{color:var(--acid)} .hero h1 .b{color:var(--base)}
+.hero p{margin:0;max-width:46ch;color:var(--muted)}
+.hero svg{flex:0 0 auto;width:min(280px,100%);height:auto}
+.hero svg .bob{animation:bob 6s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
+.hero svg .bob2{animation-delay:-3s}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 0}
+.chip{border:2px solid var(--edge);border-radius:999px;padding:3px 12px;background:var(--surface);font-weight:700;font-size:.85rem;display:inline-flex;gap:6px;align-items:baseline}
+.chip b{font-family:var(--f-mono);font-weight:500}
+.chip.pts{background:var(--sun);color:#10223d;box-shadow:0 3px 0 var(--shadow)}
+
+/* tabs */
+.tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px}
+.tab{display:flex;align-items:center;gap:8px;border:2.5px solid var(--edge);background:var(--surface);border-radius:14px;padding:8px 14px;font-weight:700;box-shadow:0 4px 0 var(--shadow);transition:transform .08s}
+.tab:active{transform:translateY(3px);box-shadow:0 1px 0 var(--shadow)}
+.tab .dot{width:18px;height:18px;border-radius:50%;background:radial-gradient(circle at 32% 28%,color-mix(in srgb,var(--c) 50%,#fff),var(--c) 65%);border:1.5px solid var(--edge)}
+.tab[aria-selected="true"]{background:var(--ink);color:var(--bg)}
+.panel{display:none}
+.panel.on{display:block}
+
+.card{background:var(--surface);border:2.5px solid var(--edge);border-radius:20px;box-shadow:0 5px 0 var(--shadow);padding:18px}
+.card h2{font-size:1.5rem;font-weight:800}
+.lead{color:var(--muted);margin:6px 0 14px;max-width:62ch}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.btn{border:2.5px solid var(--edge);background:var(--surface);border-radius:12px;padding:7px 14px;font-weight:700;box-shadow:0 3px 0 var(--shadow);transition:transform .08s}
+.btn:active{transform:translateY(2px);box-shadow:0 1px 0 var(--shadow)}
+.btn.pri{background:var(--base);color:#fff}
+.btn.hot{background:var(--acid);color:#fff}
+.btn.go{background:var(--neutral);color:#06281d}
+.btn[disabled]{opacity:.5;cursor:not-allowed}
+.say{min-height:1.6em;font-weight:600;margin:10px 0 0}
+.say.good{color:var(--neutral)} .say.bad{color:var(--acid)}
+
+/* atoms */
+.atom{display:grid;place-items:center;border-radius:50%;font-family:var(--f-mono);font-weight:500;color:#fff;line-height:1;
+  background:radial-gradient(circle at 32% 28%,color-mix(in srgb,var(--c) 50%,#fff) 0,var(--c) 58%,color-mix(in srgb,var(--c) 72%,#000) 100%);
+  box-shadow:inset 0 -3px 0 rgba(0,0,0,.14)}
+.atom.h{--c:var(--acid)} .atom.oh{--c:var(--base)}
+
+/* ---------- crossword ---------- */
+.cw-wrap{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:20px;align-items:start}
+@media (max-width:820px){.cw-wrap{grid-template-columns:minmax(0,1fr)}}
+.cw-now{display:flex;gap:10px;align-items:center;background:var(--sun-soft);border:2px solid var(--edge);border-radius:12px;padding:8px 12px;margin-bottom:12px;min-height:3.4em}
+.cw-now .lbl{font-family:var(--f-mono);font-weight:500;background:var(--ink);color:var(--bg);border-radius:8px;padding:2px 8px;white-space:nowrap}
+.cw-now .txt{flex:1;min-width:0;font-weight:600}
+.cw-now button{border:2px solid var(--edge);background:var(--surface);border-radius:8px;width:32px;height:32px;font-weight:800}
+.cw-grid{display:grid;gap:3px;width:100%;max-width:560px;margin-bottom:12px}
+.cw-cell{position:relative;aspect-ratio:1;border-radius:7px}
+.cw-cell.on{background:var(--surface);border:2px solid var(--edge)}
+.cw-cell.hl{background:var(--base-soft)}
+.cw-cell.cur{background:var(--sun);}
+.cw-cell.ok{background:var(--neutral-soft)}
+.cw-cell.bad{background:var(--acid-soft)}
+.cw-cell .n{position:absolute;top:1px;left:3px;font-size:.62rem;font-family:var(--f-mono);color:var(--muted);pointer-events:none;line-height:1}
+.cw-cell input{width:100%;height:100%;border:0;background:transparent;text-align:center;font-family:var(--f-display);font-weight:800;font-size:clamp(.95rem,3.6vw,1.5rem);color:var(--ink);text-transform:uppercase;padding:6px 0 0;caret-color:transparent;cursor:pointer;border-radius:5px}
+.cw-cell.cur input{color:#10223d}
+.cw-cell input:focus{outline:none}
+.cw-clues{display:grid;gap:14px}
+.cw-clues h3{font-size:1rem;font-family:var(--f-mono);font-weight:500;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+.cw-clues ol{list-style:none;margin:0;padding:0;display:grid;gap:4px}
+.cw-clues li button{width:100%;text-align:left;border:2px solid transparent;background:transparent;border-radius:10px;padding:5px 8px;display:flex;gap:8px;align-items:baseline}
+.cw-clues li button:hover{background:var(--bg2)}
+.cw-clues li.active button{background:var(--sun-soft);border-color:var(--edge)}
+.cw-clues li.done .c{text-decoration:line-through;color:var(--muted)}
+.cw-clues .k{font-family:var(--f-mono);font-weight:500;min-width:2.2em;color:var(--base)}
+.cw-clues .c{min-width:0}
+.cw-clues .len{font-family:var(--f-mono);color:var(--muted);font-size:.8rem;white-space:nowrap}
+
+/* ---------- tic tac toe ---------- */
+.ttt-top{display:grid;grid-template-columns:minmax(0,380px) minmax(0,1fr);gap:24px;align-items:start}
+@media (max-width:760px){.ttt-top{grid-template-columns:minmax(0,1fr)}}
+.ttt-board{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;max-width:380px;width:100%}
+.ttt-cell{aspect-ratio:1;border:2.5px solid var(--edge);border-radius:18px;background:var(--bg2);display:grid;place-items:center;padding:0;box-shadow:0 4px 0 var(--shadow);position:relative;transition:transform .08s,background .15s}
+.ttt-cell:not(:disabled):hover{background:var(--sun-soft);transform:translateY(-2px)}
+.ttt-cell:disabled{cursor:default}
+.ttt-cell .q{font-family:var(--f-display);font-weight:800;font-size:1.8rem;color:var(--line)}
+.ttt-cell .atom{width:72%;aspect-ratio:1;font-size:clamp(1rem,5vw,1.7rem);animation:pop .25s ease-out}
+@keyframes pop{from{transform:scale(.3)}}
+.ttt-cell.win{background:var(--neutral-soft);outline:3px solid var(--neutral)}
+.score3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:12px 0}
+.score3 div{border:2px solid var(--edge);border-radius:12px;padding:6px;text-align:center;background:var(--bg2)}
+.score3 b{display:block;font-family:var(--f-display);font-size:1.6rem}
+.score3 span{font-size:.78rem;color:var(--muted);font-weight:600}
+.rules{margin:0;padding-left:1.2em;color:var(--muted)}
+.rules li{margin:3px 0}
+.legend{display:flex;gap:14px;flex-wrap:wrap;margin:10px 0}
+.legend span{display:inline-flex;gap:8px;align-items:center;font-weight:600}
+.legend .atom{width:30px;height:30px;font-size:.7rem}
+
+/* ---------- maze ---------- */
+.mz-top{display:grid;grid-template-columns:minmax(0,520px) minmax(0,1fr);gap:24px;align-items:start}
+@media (max-width:820px){.mz-top{grid-template-columns:minmax(0,1fr)}}
+.mz{display:grid;grid-template-columns:repeat(11,1fr);width:100%;max-width:520px;border:4px solid var(--edge);border-radius:14px;background:var(--surface);overflow:hidden;touch-action:manipulation}
+.mz-c{aspect-ratio:1;position:relative;display:grid;place-items:center;border:0 solid var(--edge)}
+.mz-c.t{border-top-width:4px} .mz-c.l{border-left-width:4px}
+.mz-c.seen::after{content:"";position:absolute;width:22%;height:22%;border-radius:50%;background:var(--acid-soft);border:1.5px solid var(--acid)}
+.mz-c .atom{width:70%;aspect-ratio:1;font-size:clamp(.55rem,2.6vw,.95rem);z-index:2}
+.mz-gate{width:74%;aspect-ratio:1;border-radius:28%;background:var(--violet);border:2.5px solid var(--edge);color:#fff;display:grid;place-items:center;font-family:var(--f-display);font-weight:800;font-size:clamp(.8rem,3vw,1.2rem);z-index:1}
+.mz-gate.open{background:var(--neutral-soft);color:var(--neutral);border-style:dashed;border-color:var(--neutral)}
+.mz-exit{width:80%;aspect-ratio:1;border-radius:50%;background:var(--neutral);border:2.5px solid var(--edge);display:grid;place-items:center;color:#06281d;font-family:var(--f-mono);font-weight:500;font-size:clamp(.5rem,2.2vw,.8rem);z-index:1}
+.mz-start{position:absolute;bottom:1px;left:3px;font-family:var(--f-mono);font-size:.55rem;color:var(--muted)}
+.dpad{display:grid;grid-template-columns:repeat(3,52px);grid-template-rows:repeat(2,52px);gap:6px;margin:14px 0 4px}
+.dpad button{border:2.5px solid var(--edge);background:var(--surface);border-radius:14px;font-size:1.3rem;font-weight:800;box-shadow:0 3px 0 var(--shadow)}
+.dpad button:active{transform:translateY(2px);box-shadow:0 1px 0 var(--shadow)}
+.dpad .u{grid-column:2;grid-row:1} .dpad .l{grid-column:1;grid-row:2} .dpad .d{grid-column:2;grid-row:2} .dpad .r{grid-column:3;grid-row:2}
+
+/* ---------- lab notes ---------- */
+.notes{display:grid;gap:16px}
+details{border:2.5px solid var(--edge);border-radius:16px;background:var(--surface);box-shadow:0 4px 0 var(--shadow);padding:0 16px}
+details[open]{padding-bottom:16px}
+summary{cursor:pointer;font-family:var(--f-display);font-weight:800;font-size:1.2rem;padding:12px 0;list-style:none;display:flex;gap:10px;align-items:center}
+summary::-webkit-details-marker{display:none}
+summary::before{content:"+";display:grid;place-items:center;width:26px;height:26px;border-radius:50%;background:var(--sun);color:#10223d;border:2px solid var(--edge);font-family:var(--f-mono)}
+details[open] summary::before{content:"–"}
+.tbl{overflow-x:auto}
+table{border-collapse:collapse;width:100%;min-width:480px}
+th,td{text-align:left;padding:8px 10px;border-bottom:2px solid var(--line);vertical-align:top}
+th{font-family:var(--f-mono);font-weight:500;font-size:.78rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.tag{display:inline-block;border-radius:999px;padding:1px 10px;font-weight:700;font-size:.82rem;border:2px solid var(--edge)}
+.tag.s{background:var(--neutral-soft)} .tag.i{background:var(--acid-soft)} .tag.m{background:var(--sun-soft)} .tag.a{background:var(--violet-soft)} .tag.n{background:var(--bg2)}
+.formulas{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px}
+.formulas div{background:var(--bg2);border-radius:12px;padding:10px 12px}
+.formulas .mono{display:block;font-size:.95rem;margin-top:2px}
+.picker{display:grid;gap:12px}
+select{font:inherit;border:2.5px solid var(--edge);border-radius:12px;padding:8px 12px;background:var(--surface);color:var(--ink);max-width:100%}
+.recipe{background:var(--bg2);border-radius:14px;padding:14px;display:grid;gap:8px}
+.recipe .eq{font-family:var(--f-mono);background:var(--surface);border:2px solid var(--edge);border-radius:10px;padding:8px 10px;overflow-x:auto;white-space:nowrap}
+.recipe ol{margin:0;padding-left:1.3em}
+
+/* ---------- quiz modal ---------- */
+.modal{position:fixed;inset:0;z-index:50;background:rgba(8,16,40,.62);display:grid;place-items:center;
+  padding-block:max(16px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-bottom,0px));
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));overflow:auto}
+.modal .card{width:100%;max-width:580px;max-height:100%;overflow:auto;animation:pop .2s ease-out}
+.topic{display:inline-block;background:var(--violet-soft);border:2px solid var(--edge);border-radius:999px;padding:1px 12px;font-family:var(--f-mono);font-size:.76rem;letter-spacing:.06em;text-transform:uppercase}
+.ask{font-family:var(--f-display);font-weight:600;font-size:1.3rem;line-height:1.25;margin:10px 0 14px;text-wrap:pretty}
+.ctx{color:var(--muted);font-weight:600;margin:0 0 6px;font-size:.9rem}
+.opts{display:grid;gap:8px}
+.opt{display:flex;gap:10px;align-items:center;text-align:left;border:2.5px solid var(--edge);background:var(--surface);border-radius:14px;padding:9px 12px;box-shadow:0 3px 0 var(--shadow);font-weight:500}
+.opt .l{flex:0 0 28px;height:28px;border-radius:50%;display:grid;place-items:center;background:var(--bg2);font-family:var(--f-mono);font-weight:500;border:2px solid var(--edge)}
+.opt:not(:disabled):hover{background:var(--sun-soft)}
+.opt.right{background:var(--neutral-soft);border-color:var(--neutral)}
+.opt.wrong{background:var(--acid-soft);border-color:var(--acid)}
+.opt:disabled{cursor:default}
+.fb{margin-top:14px;border-radius:14px;padding:12px 14px;border:2.5px solid var(--edge)}
+.fb.good{background:var(--neutral-soft)} .fb.bad{background:var(--acid-soft)}
+.fb h3{font-size:1.15rem;margin-bottom:4px}
+.fb p{margin:0 0 10px}
+.burst{position:fixed;inset:0;pointer-events:none;z-index:60;overflow:hidden}
+.burst i{position:absolute;top:-30px;border-radius:50%;animation:fall 2.2s ease-in forwards;background:var(--c)}
+@keyframes fall{to{transform:translateY(110vh) rotate(300deg)}}
+</style>
+
+<div class="drift" aria-hidden="true">
+  <i style="--c:var(--acid);width:46px;height:46px;left:4%;top:22%"></i>
+  <i style="--c:var(--base);width:70px;height:70px;right:5%;top:14%;animation-delay:-2s"></i>
+  <i style="--c:var(--neutral);width:34px;height:34px;left:12%;top:70%;animation-delay:-4s"></i>
+  <i style="--c:var(--sun);width:54px;height:54px;right:9%;top:62%;animation-delay:-6s"></i>
+  <i style="--c:var(--violet);width:28px;height:28px;left:48%;top:92%;animation-delay:-1s"></i>
+</div>
+
+<div class="wrap">
+  <header class="hero">
+    <div class="hero-text">
+      <div class="eyebrow">Acids · Bases · Salts</div>
+      <h1>Proton <span class="a">Play</span><span class="b">ground</span></h1>
+      <p>A crossword, a tic-tac-toe duel and a maze, all powered by acid-base chemistry. Answer questions to win cells and open gates.</p>
+      <div class="chips" aria-live="polite">
+        <span class="chip pts">Lab points <b id="sc">0</b></span>
+        <span class="chip">Crossword <b id="scCw">0/10</b></span>
+        <span class="chip">Duels won <b id="scT">0</b></span>
+        <span class="chip">Mazes cleared <b id="scM">0</b></span>
+      </div>
+    </div>
+    <svg viewBox="0 0 280 170" role="img" aria-label="A hydronium ion and a hydroxide ion drifting side by side">
+      <g class="bob">
+        <g stroke="var(--edge)" stroke-width="5" stroke-linecap="round"><line x1="82" y1="78" x2="40" y2="48"/><line x1="82" y1="78" x2="40" y2="112"/><line x1="82" y1="78" x2="112" y2="32"/></g>
+        <circle cx="40" cy="48" r="15" fill="#fff" stroke="var(--edge)" stroke-width="3"/><circle cx="40" cy="112" r="15" fill="#fff" stroke="var(--edge)" stroke-width="3"/><circle cx="112" cy="32" r="15" fill="#fff" stroke="var(--edge)" stroke-width="3"/>
+        <circle cx="82" cy="78" r="30" fill="#ff3b6b" stroke="var(--edge)" stroke-width="3"/><text x="82" y="85" text-anchor="middle" font-family="Figtree,sans-serif" font-weight="700" font-size="22" fill="#fff">O</text>
+      </g>
+      <g class="bob bob2">
+        <line x1="212" y1="92" x2="250" y2="60" stroke="var(--edge)" stroke-width="5" stroke-linecap="round"/>
+        <circle cx="250" cy="60" r="15" fill="#fff" stroke="var(--edge)" stroke-width="3"/>
+        <circle cx="212" cy="92" r="30" fill="#2f6bff" stroke="var(--edge)" stroke-width="3"/><text x="212" y="99" text-anchor="middle" font-family="Figtree,sans-serif" font-weight="700" font-size="22" fill="#fff">O</text>
+      </g>
+      <text x="82" y="158" text-anchor="middle" font-family="DM Mono,monospace" font-size="15" fill="var(--ink)">H₃O⁺</text>
+      <text x="224" y="158" text-anchor="middle" font-family="DM Mono,monospace" font-size="15" fill="var(--ink)">OH⁻</text>
+    </svg>
+  </header>
+
+  <div class="tabs" role="tablist" aria-label="Games">
+    <button class="tab" role="tab" id="t-cw" aria-selected="true" aria-controls="p-cw"><span class="dot" style="--c:var(--sun)"></span>Crossword</button>
+    <button class="tab" role="tab" id="t-ttt" aria-selected="false" aria-controls="p-ttt"><span class="dot" style="--c:var(--acid)"></span>Tic-Tac-Toe</button>
+    <button class="tab" role="tab" id="t-mz" aria-selected="false" aria-controls="p-mz"><span class="dot" style="--c:var(--neutral)"></span>Maze</button>
+    <button class="tab" role="tab" id="t-nt" aria-selected="false" aria-controls="p-nt"><span class="dot" style="--c:var(--base)"></span>Lab notes</button>
+  </div>
+
+  <!-- CROSSWORD -->
+  <section class="panel on" id="p-cw" role="tabpanel" aria-labelledby="t-cw">
+    <div class="card">
+      <h2>Reagent Crossword</h2>
+      <p class="lead">Ten terms from acids, bases, salts and the Lewis model. Click a square, type, and press space to flip between across and down.</p>
+      <div class="cw-wrap">
+        <div>
+          <div class="cw-now"><span class="lbl" id="cwLbl">1 ACROSS</span><span class="txt" id="cwTxt"></span><button id="cwPrev" aria-label="Previous clue">‹</button><button id="cwNext" aria-label="Next clue">›</button></div>
+          <div class="cw-grid" id="cwGrid"></div>
+          <div class="row">
+            <button class="btn pri" id="cwCheck">Check</button>
+            <button class="btn" id="cwHintL">Reveal letter</button>
+            <button class="btn" id="cwHintW">Reveal word</button>
+            <button class="btn hot" id="cwReset">Clear</button>
+          </div>
+          <p class="say" id="cwSay" aria-live="polite"></p>
+        </div>
+        <div class="cw-clues">
+          <div><h3>Across</h3><ol id="clA"></ol></div>
+          <div><h3>Down</h3><ol id="clD"></ol></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TIC TAC TOE -->
+  <section class="panel" id="p-ttt" role="tabpanel" aria-labelledby="t-ttt">
+    <div class="card">
+      <h2>Proton vs Hydroxide</h2>
+      <p class="lead">Take a square by answering its question. Miss it and the hydroxide grabs that square. Three in a row wins.</p>
+      <div class="ttt-top">
+        <div><div class="ttt-board" id="tttBoard"></div></div>
+        <div>
+          <div class="legend">
+            <span><i class="atom h">H⁺</i> You</span>
+            <span><i class="atom oh">OH⁻</i> Hydroxide</span>
+          </div>
+          <p class="say" id="tttSay" aria-live="polite">Your move. Pick a square.</p>
+          <div class="score3">
+            <div><b id="tW">0</b><span>Wins</span></div>
+            <div><b id="tD">0</b><span>Draws</span></div>
+            <div><b id="tL">0</b><span>Losses</span></div>
+          </div>
+          <ul class="rules">
+            <li>Right answer: the square is yours, then the hydroxide plays one move.</li>
+            <li>Wrong answer: the hydroxide takes that square as its move.</li>
+          </ul>
+          <div class="row" style="margin-top:14px"><button class="btn pri" id="tttNew">New duel</button></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- MAZE -->
+  <section class="panel" id="p-mz" role="tabpanel" aria-labelledby="t-mz">
+    <div class="card">
+      <h2>Titration Maze</h2>
+      <p class="lead">Guide the proton from pH 1 to the neutral exit. Purple gates are locked until you answer correctly.</p>
+      <div class="mz-top">
+        <div>
+          <div class="mz" id="mz" tabindex="0" aria-label="Maze. Use arrow keys or WASD to move."></div>
+        </div>
+        <div>
+          <div class="score3">
+            <div><b id="mMoves">0</b><span>Moves</span></div>
+            <div><b id="mGates">0/3</b><span>Gates open</span></div>
+            <div><b id="mBest">–</b><span>Best moves</span></div>
+          </div>
+          <p class="say" id="mzSay" aria-live="polite">Use the arrow keys, WASD or the pad.</p>
+          <div class="dpad" aria-label="Move">
+            <button class="u" data-d="u" aria-label="Up">▲</button>
+            <button class="l" data-d="l" aria-label="Left">◀</button>
+            <button class="d" data-d="d" aria-label="Down">▼</button>
+            <button class="r" data-d="r" aria-label="Right">▶</button>
+          </div>
+          <div class="row" style="margin-top:14px"><button class="btn pri" id="mzNew">New maze</button></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- LAB NOTES -->
+  <section class="panel" id="p-nt" role="tabpanel" aria-labelledby="t-nt">
+    <div class="notes">
+      <details open>
+        <summary>Make-a-salt planner</summary>
+        <div class="picker">
+          <label for="saltSel">Pick a salt to prepare</label>
+          <select id="saltSel"></select>
+          <div class="recipe" id="recipe"></div>
+        </div>
+      </details>
+      <details>
+        <summary>Solubility rules</summary>
+        <div class="tbl"><table>
+          <thead><tr><th>Salts of</th><th>Solubility</th><th>Exceptions</th></tr></thead>
+          <tbody>
+            <tr><td>Nitrates, NO₃⁻</td><td><span class="tag s">All soluble</span></td><td>None</td></tr>
+            <tr><td>Group I cations (Li⁺, Na⁺, K⁺) and ammonium, NH₄⁺</td><td><span class="tag s">All soluble</span></td><td>None</td></tr>
+            <tr><td>Chlorides, bromides, iodides</td><td><span class="tag s">Soluble</span></td><td>Silver and lead(II) halides are insoluble. PbCl₂ dissolves in hot water.</td></tr>
+            <tr><td>Sulfates, SO₄²⁻</td><td><span class="tag s">Soluble</span></td><td>BaSO₄ and PbSO₄ are insoluble. CaSO₄ is only slightly soluble.</td></tr>
+            <tr><td>Carbonates, CO₃²⁻</td><td><span class="tag i">Insoluble</span></td><td>Group I and ammonium carbonates are soluble.</td></tr>
+            <tr><td>Hydroxides, OH⁻</td><td><span class="tag i">Insoluble</span></td><td>Group I hydroxides and NH₄OH are soluble. Ca(OH)₂ is slightly soluble.</td></tr>
+          </tbody></table></div>
+      </details>
+      <details>
+        <summary>Four ways to make a salt</summary>
+        <div class="tbl"><table>
+          <thead><tr><th>Method</th><th>Use it when</th><th>Key points</th></tr></thead>
+          <tbody>
+            <tr><td><span class="tag i">Precipitation</span></td><td>The salt is insoluble</td><td>Mix two soluble salts. Filter, wash the residue with distilled water, dry.</td></tr>
+            <tr><td><span class="tag m">Titration</span></td><td>The salt is soluble and both reactants are soluble (Group I or ammonium salts)</td><td>Find the volumes with an indicator, repeat without it, then evaporate and crystallise.</td></tr>
+            <tr><td><span class="tag s">Acid + insoluble base or carbonate</span></td><td>The salt is soluble and the solid is insoluble</td><td>Add excess solid, filter it off, evaporate to saturation, cool, filter, wash, dry. Effervescence stops with carbonates.</td></tr>
+            <tr><td><span class="tag a">Acid + metal</span></td><td>The metal is moderately reactive (Mg, Zn, Fe)</td><td>Hydrogen forms. Too violent for Na or K. Cu does not react with dilute acid.</td></tr>
+          </tbody></table></div>
+        <p class="lead" style="margin-bottom:0">Purify crystals by recrystallisation: dissolve in the minimum of hot water, filter while hot, cool slowly, filter and wash with a little cold distilled water.</p>
+      </details>
+      <details>
+        <summary>Acid-base maths</summary>
+        <div class="formulas">
+          <div>pH<span class="mono">pH = −log[H⁺]</span></div>
+          <div>Water<span class="mono">Kw = [H⁺][OH⁻] = 1.0×10⁻¹⁴</span></div>
+          <div>Scale at 25 °C<span class="mono">pH + pOH = 14</span></div>
+          <div>Conjugate pair<span class="mono">Ka × Kb = Kw</span></div>
+          <div>Weak acid HA<span class="mono">[H⁺] ≈ √(Ka × C)</span></div>
+          <div>Weak base B<span class="mono">[OH⁻] ≈ √(Kb × C)</span></div>
+          <div>Titration<span class="mono">n = c × V, then use the mole ratio</span></div>
+          <div>Dilution<span class="mono">c₁V₁ = c₂V₂</span></div>
+        </div>
+      </details>
+      <details>
+        <summary>Salts, oxides and structure</summary>
+        <div class="tbl"><table>
+          <thead><tr><th>Salt made from</th><th>Solution is</th><th>Example</th></tr></thead>
+          <tbody>
+            <tr><td>Strong acid + strong base</td><td><span class="tag n">Neutral</span></td><td>NaCl, KNO₃</td></tr>
+            <tr><td>Strong acid + weak base</td><td><span class="tag i">Acidic</span></td><td>NH₄Cl (NH₄⁺ gives H⁺)</td></tr>
+            <tr><td>Weak acid + strong base</td><td><span class="tag s">Basic</span></td><td>CH₃COONa (CH₃COO⁻ takes H⁺)</td></tr>
+            <tr><td>Weak acid + weak base</td><td><span class="tag a">Compare Ka and Kb</span></td><td>NH₄CN is basic because Kb(CN⁻) &gt; Ka(NH₄⁺)</td></tr>
+            <tr><td>Small, highly charged metal ion</td><td><span class="tag i">Acidic</span></td><td>Al³⁺, Fe³⁺ (hydrated ions donate H⁺)</td></tr>
+          </tbody></table></div>
+        <p class="lead" style="margin:12px 0 4px"><b>Oxides.</b> Metal oxides are basic (Na₂O, MgO). Al₂O₃ is amphoteric. Non-metal oxides are acidic (SO₃, P₄O₁₀, CO₂).</p>
+        <p class="lead" style="margin:0 0 4px"><b>Acid strength.</b> Down a group, H–X gets weaker so HI &gt; HF. For oxyacids, more O atoms or a more electronegative centre means a stronger acid (HClO₄ &gt; HClO). Electron-withdrawing groups strengthen acids (CF₃COOH &gt; CH₃COOH).</p>
+        <p class="lead" style="margin:0"><b>Lewis model.</b> Acids accept an electron pair (H⁺, BF₃, Fe³⁺). Bases donate one (NH₃, OH⁻, H₂O).</p>
+      </details>
+    </div>
+  </section>
+</div>
+
+<!-- quiz modal -->
+<div class="modal" id="modal" hidden role="dialog" aria-modal="true" aria-labelledby="mQ">
+  <div class="card">
+    <div class="topic" id="mTopic"></div>
+    <p class="ctx" id="mCtx"></p>
+    <p class="ask" id="mQ"></p>
+    <div class="opts" id="mOpts"></div>
+    <div class="fb" id="mFb" hidden></div>
+  </div>
+</div>
+
+<script>
+(function(){
+"use strict";
+var $=function(s,r){return (r||document).querySelector(s)};
+var $$=function(s,r){return Array.prototype.slice.call((r||document).querySelectorAll(s))};
+function shuffle(a){a=a.slice();for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=a[i];a[i]=a[j];a[j]=t}return a}
+
+/* ---------- score ---------- */
+var S={pts:0,cw:0,t:0,m:0};
+function paint(){$("#sc").textContent=S.pts;$("#scCw").textContent=S.cw+"/10";$("#scT").textContent=S.t;$("#scM").textContent=S.m}
+function add(n){S.pts+=n;paint()}
+function confetti(){
+  var b=document.createElement("div");b.className="burst";
+  var cols=["var(--acid)","var(--base)","var(--neutral)","var(--sun)","var(--violet)"];
+  for(var i=0;i<36;i++){var e=document.createElement("i");var s=8+Math.random()*12;
+    e.style.cssText="left:"+Math.random()*100+"%;width:"+s+"px;height:"+s+"px;--c:"+cols[i%5]+";animation-delay:"+Math.random()*.6+"s";b.appendChild(e)}
+  document.body.appendChild(b);setTimeout(function(){b.remove()},3200);
+}
+
+/* ---------- question bank ---------- */
+var BANK=[];
+function Q(t,q,a,w,e){BANK.push({t:t,q:q,a:a,w:w,e:e})}
+var T1="Nature of acids",T2="Acid strength",T3="pH scale",T4="Polyprotic acids",T5="Bases",T6="Salts and pH",T7="Structure and strength",T8="Oxides",T9="Lewis model",T10="Making salts",T11="Solubility rules",T12="Problem solving";
+
+Q(T1,"In the Brønsted–Lowry model, an acid is a…","proton (H⁺) donor",["proton acceptor","electron-pair donor","substance that only contains OH⁻"],"A Brønsted–Lowry acid donates H⁺ to a base and becomes its conjugate base.");
+Q(T1,"What is the conjugate base of HSO₄⁻?","SO₄²⁻",["H₂SO₄","HSO₃⁻","OH⁻"],"Remove one H⁺ from HSO₄⁻ and SO₄²⁻ remains.");
+Q(T1,"When HCl dissolves in water, the proton is transferred to H₂O to form…","H₃O⁺",["OH⁻","H₂O₂","Cl₂"],"Water acts as the base and accepts H⁺, giving the hydronium ion H₃O⁺.");
+Q(T1,"Which species is amphiprotic (can donate and accept H⁺)?","HCO₃⁻",["Cl⁻","NH₄⁺","CH₄"],"HCO₃⁻ can lose H⁺ to give CO₃²⁻ or gain H⁺ to give H₂CO₃.");
+Q(T1,"In NH₃ + H₂O ⇌ NH₄⁺ + OH⁻, what is the conjugate acid of NH₃?","NH₄⁺",["OH⁻","H₂O","NH₂⁻"],"NH₃ gains H⁺ to become NH₄⁺, its conjugate acid.");
+
+Q(T2,"A strong acid in water is one that…","ionises essentially completely",["has a pH of exactly 1","contains the most hydrogen atoms","reacts only with metals"],"Strong acids such as HCl, HNO₃ and H₂SO₄ (first step) dissociate almost 100 %.");
+Q(T2,"Which of these is a weak acid?","CH₃COOH",["HNO₃","HI","HClO₄"],"Ethanoic acid only partly ionises, so a Ka expression is needed.");
+Q(T2,"Acid A has Ka = 1.8×10⁻⁵ and acid B has Ka = 6.3×10⁻⁸. Which statement is correct?","A is the stronger acid",["B is the stronger acid","They are equally strong","Ka cannot be compared"],"A larger Ka means more ionisation, so a stronger acid.");
+Q(T2,"The stronger an acid, the ______ its conjugate base.","weaker",["stronger","equally strong as","more basic than"],"A strong acid gives up H⁺ easily, so its conjugate base holds on to H⁺ poorly.");
+
+Q(T3,"What is the pH of 0.010 M HCl?","2.00",["1.00","12.00","0.01"],"HCl is strong, so [H⁺] = 0.010 M and pH = −log(10⁻²) = 2.");
+Q(T3,"What is [H⁺] in a solution of pH 4.00?","1.0×10⁻⁴ M",["4.0 M","1.0×10⁻¹⁰ M","0.40 M"],"[H⁺] = 10^(−pH) = 10⁻⁴ M.");
+Q(T3,"What is the pH of 0.0010 M NaOH at 25 °C?","11.00",["3.00","10.00","1.00"],"pOH = 3, so pH = 14 − 3 = 11.");
+Q(T3,"What is the pH of 0.050 M Ba(OH)₂?","13.00",["12.70","1.30","12.00"],"Each formula unit gives 2 OH⁻, so [OH⁻] = 0.10 M, pOH = 1, pH = 13.");
+Q(T3,"Each drop of one pH unit means [H⁺] is…","10 times greater",["2 times greater","10 times smaller","1 mol dm⁻³ greater"],"The pH scale is logarithmic, base 10.");
+Q(T3,"A 0.10 M weak acid HA has Ka = 1.0×10⁻⁵. Assuming little ionisation, its pH is…","3.00",["1.00","5.00","2.50"],"[H⁺] ≈ √(Ka × C) = √(10⁻⁶) = 10⁻³ M, so pH 3.");
+
+Q(T4,"How many protons can phosphoric acid, H₃PO₄, donate?","3",["1","2","4"],"H₃PO₄ is triprotic: H₂PO₄⁻, then HPO₄²⁻, then PO₄³⁻.");
+Q(T4,"Why is Ka2 much smaller than Ka1 for a diprotic acid?","The second H⁺ leaves an ion that is already negative",["The second H⁺ is a different isotope","Water is used up in the first step","Ka always falls with temperature"],"Pulling a positive proton away from a negatively charged ion costs more energy.");
+Q(T4,"In dilute sulfuric acid, which description fits?","First ionisation is complete, second is partial",["Both ionisations are complete","Both ionisations are partial","Neither ionises"],"H₂SO₄ is strong in step one. HSO₄⁻ is only a weak acid (Ka ≈ 10⁻²).");
+Q(T4,"In a solution of H₂CO₃, the H⁺ comes almost entirely from…","the first ionisation, H₂CO₃ ⇌ H⁺ + HCO₃⁻",["the second ionisation of HCO₃⁻","CO₃²⁻ reacting with water","the dissolved CO₂ gas directly"],"Ka1 is far larger than Ka2, so step two adds very little H⁺.");
+Q(T4,"After H₃PO₄ loses two protons, the species left is…","HPO₄²⁻",["H₂PO₄⁻","PO₄³⁻","HPO₄⁻"],"H₃PO₄ → H₂PO₄⁻ → HPO₄²⁻.");
+
+Q(T5,"Which is a strong base?","KOH",["NH₃","CH₃NH₂","CH₃COO⁻"],"Group I hydroxides dissociate completely in water.");
+Q(T5,"For a conjugate acid-base pair in water, Ka × Kb equals…","Kw",["1","14","Ka + Kb"],"Ka × Kb = Kw = 1.0×10⁻¹⁴ at 25 °C.");
+Q(T5,"What is the pH of 0.10 M NH₃ (Kb = 1.8×10⁻⁵)?","about 11.1",["13.0","2.9","8.9"],"[OH⁻] ≈ √(1.8×10⁻⁶) = 1.3×10⁻³ M, pOH = 2.87, pH = 11.13.");
+Q(T5,"An Arrhenius base is a substance that…","produces OH⁻ ions in water",["donates protons","accepts an electron pair","has a pH below 7"],"Arrhenius defined bases by the hydroxide ions they release in aqueous solution.");
+Q(T5,"Ammonia has no OH⁻ but is a base because it…","accepts H⁺ from water using its lone pair",["splits into N and H₃","donates H⁺ to water","is ionic"],"NH₃ + H₂O ⇌ NH₄⁺ + OH⁻.");
+
+Q(T6,"What is the pH of NaCl(aq)?","about 7",["below 7","above 7","depends on volume only"],"Na⁺ and Cl⁻ come from a strong base and a strong acid. Neither reacts with water.");
+Q(T6,"A solution of NH₄Cl is…","acidic",["neutral","basic","amphoteric"],"NH₄⁺ is a weak acid and donates H⁺ to water. Cl⁻ does nothing.");
+Q(T6,"A solution of sodium ethanoate, CH₃COONa, is…","basic",["acidic","neutral","strongly acidic"],"CH₃COO⁻ is the conjugate base of a weak acid and takes H⁺ from water, making OH⁻.");
+Q(T6,"Why is an aluminium chloride solution acidic?","Hydrated Al(H₂O)₆³⁺ donates H⁺ to water",["Al³⁺ is a strong base","Cl⁻ reacts with water","Al³⁺ is oxidised"],"The small, highly charged Al³⁺ polarises bound water so strongly that it acts as an acid.");
+Q(T6,"NH₄CN: Ka(NH₄⁺) = 5.6×10⁻¹⁰ and Kb(CN⁻) = 2.5×10⁻⁵. The solution is…","basic",["acidic","neutral","cannot be predicted"],"The anion is a stronger base than the cation is an acid, since Kb > Ka.");
+Q(T6,"Which salt solution is neutral?","KNO₃",["NH₄NO₃","Na₂CO₃","FeCl₃"],"KNO₃ comes from KOH (strong) and HNO₃ (strong).");
+
+Q(T7,"Which is the strongest acid in the series HF, HCl, HBr, HI?","HI",["HF","HCl","HBr"],"Down the group the H–X bond weakens, so HI gives up H⁺ most easily.");
+Q(T7,"Which is the strongest acid?","HClO₄",["HClO","HClO₂","HClO₃"],"More oxygen atoms pull electron density away and stabilise the anion.");
+Q(T7,"Why is CF₃COOH a stronger acid than CH₃COOH?","The electronegative F atoms withdraw electrons and stabilise the anion",["F atoms are heavier","CF₃COOH has more hydrogens","Carbon is more reactive with F"],"This is the inductive effect. A more stable conjugate base means a stronger acid.");
+Q(T7,"Which is the most acidic?","H₂SO₄",["H₃PO₄","H₂SiO₃","H₂S"],"Across a period, higher electronegativity of the central atom makes the oxyacid stronger. Among these, H₂SO₄ is strongest.");
+
+Q(T8,"Which oxide is acidic?","SO₃",["Na₂O","MgO","CaO"],"Non-metal oxides react with water to give acids. SO₃ + H₂O → H₂SO₄.");
+Q(T8,"Al₂O₃ is amphoteric. This means it…","reacts with both acids and bases",["is neutral in water","dissolves in water to give a neutral solution","does not react at all"],"It dissolves in HCl to give Al³⁺ and in NaOH to give aluminate ions.");
+Q(T8,"Across period 3, from Na₂O to SO₃, the oxides change from…","basic to amphoteric to acidic",["acidic to basic","all basic","all neutral"],"Metal oxides are basic, non-metal oxides acidic, and Al₂O₃ sits between.");
+Q(T8,"Na₂O dissolves in water to give…","a strongly alkaline solution of NaOH",["an acidic solution","a neutral solution","a precipitate of Na"],"Na₂O + H₂O → 2NaOH.");
+Q(T8,"CO₂ dissolves in water to give…","a weakly acidic solution",["a strong base","a neutral solution","a strong acid"],"CO₂ + H₂O ⇌ H₂CO₃ ⇌ H⁺ + HCO₃⁻.");
+
+Q(T9,"A Lewis acid is a species that…","accepts an electron pair",["donates an electron pair","donates a proton","accepts a proton only"],"Lewis theory focuses on electron pairs, so it covers reactions with no protons at all.");
+Q(T9,"In BF₃ + :NH₃ → F₃B–NH₃, NH₃ acts as a…","Lewis base",["Lewis acid","Brønsted acid","oxidising agent"],"The N lone pair is donated to boron, forming a coordinate bond.");
+Q(T9,"Which is a typical Lewis acid?","Fe³⁺",["NH₃","OH⁻","Cl⁻"],"Fe³⁺ has empty orbitals and accepts lone pairs from six water molecules.");
+Q(T9,"Why is BF₃ a Lewis acid?","Boron has an incomplete octet with an empty p orbital",["Boron has a spare lone pair","BF₃ is ionic","Fluorine donates protons"],"The empty orbital on B can accept an electron pair.");
+Q(T9,"In CO₂ + OH⁻ → HCO₃⁻, CO₂ acts as…","a Lewis acid",["a Lewis base","a Brønsted base","a catalyst"],"OH⁻ donates an electron pair to the electron-poor carbon atom.");
+
+Q(T10,"Which method is best to prepare insoluble BaSO₄?","Mix BaCl₂(aq) with Na₂SO₄(aq) and filter",["Titrate Ba(OH)₂ with HCl","Add Ba metal to dilute HCl","Evaporate BaCl₂ solution"],"Precipitation: two soluble salts are mixed and the insoluble product is filtered off.");
+Q(T10,"To make CuSO₄ crystals from CuO, you should…","add excess CuO to warm dilute H₂SO₄, filter, then evaporate and crystallise",["titrate CuO with H₂SO₄ using an indicator","mix CuO with NaCl solution","burn copper in sulfur"],"CuO is an insoluble base, so any excess is easily filtered out.");
+Q(T10,"Why is an excess of insoluble solid used when making a soluble salt from an acid?","So all the acid reacts and the excess is filtered off",["To speed up crystallisation","To make the solution coloured","To form a precipitate"],"This leaves a pure salt solution with no leftover acid.");
+Q(T10,"Why is sodium chloride made by titration rather than adding excess solid?","Both NaOH and HCl are soluble, so excess cannot be filtered off",["Sodium is too heavy","NaCl is insoluble","Indicators cannot be filtered"],"Soluble reactants must be mixed in exactly the right volumes, found using an indicator.");
+Q(T10,"After a titration with an indicator, the next step is to…","repeat with the same volumes without the indicator",["add more indicator","boil to dryness at once","add a catalyst"],"The indicator would contaminate the crystals, so it is left out the second time.");
+Q(T10,"Which metal is far too reactive to add to dilute acid to make a salt safely?","Sodium",["Zinc","Magnesium","Iron"],"Group I metals react violently. Mg, Zn and Fe react at a controllable rate.");
+Q(T10,"Making Ca(NO₃)₂ from CaCO₃ and HNO₃: how do you know enough solid has been added?","Fizzing stops and some solid remains",["The solution turns blue","A precipitate forms","The temperature drops to 0 °C"],"CO₂ is released while acid remains. When fizzing stops, the acid is used up.");
+Q(T10,"To obtain crystals from a salt solution, you should evaporate until…","the solution is saturated, then cool",["all the water has boiled off","the solution turns purple","the volume doubles"],"Heating to dryness can decompose hydrated salts and traps impurities.");
+Q(T10,"Which starting materials give zinc sulfate?","Zinc oxide and dilute sulfuric acid",["Zinc and sodium sulfate solution","Zinc hydroxide and sodium chloride","Zinc nitrate and magnesium sulfate"],"ZnO is an insoluble base. Zn(NO₃)₂ + MgSO₄ gives no precipitate, so nothing is made.");
+Q(T10,"How can you make (NH₄)₂SO₄ crystals?","Titrate aqueous ammonia with dilute H₂SO₄, then evaporate",["Mix NH₄Cl with BaCl₂","Add ammonium to zinc","Precipitate it from NH₄NO₃ and KCl"],"Ammonium salts are soluble and ammonia is soluble, so titration is the method.");
+Q(T10,"Crystals filtered from a solution should be washed with…","a little cold distilled water",["a lot of hot water","dilute acid","tap water"],"Cold, small amounts remove mother liquor without dissolving much product.");
+Q(T10,"Recrystallisation purifies a solid by dissolving it in…","the minimum of hot solvent, then cooling slowly",["excess cold solvent","boiling acid","cold ethanol then freezing"],"Impurities stay in solution while pure crystals form on cooling.");
+
+Q(T11,"Which compound is insoluble in water?","BaSO₄",["NaNO₃","(NH₄)₂CO₃","KCl"],"Sulfates are soluble except Ba²⁺, Pb²⁺ (and slightly Ca²⁺).");
+Q(T11,"Which statement is true for nitrates?","All are soluble",["All are insoluble","Only Group I nitrates are soluble","Silver nitrate is insoluble"],"There are no common insoluble nitrates.");
+Q(T11,"Which pair gives a white precipitate when mixed?","AgNO₃(aq) and NaCl(aq)",["NaNO₃(aq) and KCl(aq)","NH₄Cl(aq) and KNO₃(aq)","Na₂SO₄(aq) and KCl(aq)"],"Ag⁺ + Cl⁻ → AgCl(s). All other pairs contain only soluble combinations.");
+Q(T11,"Which carbonate is soluble in water?","Na₂CO₃",["CaCO₃","CuCO₃","MgCO₃"],"Group I and ammonium carbonates are the soluble ones.");
+Q(T11,"Which pair of sulfates is insoluble or nearly so?","BaSO₄ and PbSO₄",["Na₂SO₄ and K₂SO₄","MgSO₄ and ZnSO₄","(NH₄)₂SO₄ and CuSO₄"],"Barium and lead sulfates are the main exceptions to the sulfate rule.");
+Q(T11,"Which hydroxide is soluble?","NaOH",["Cu(OH)₂","Fe(OH)₃","Mg(OH)₂"],"Group I hydroxides are soluble. Most others precipitate.");
+Q(T11,"Mixing Pb(NO₃)₂(aq) with KI(aq) gives…","a bright yellow precipitate of PbI₂",["a white precipitate of KNO₃","no visible change","a blue solution"],"Iodides are soluble except with Ag⁺ and Pb²⁺. Pb²⁺ + 2I⁻ → PbI₂(s).");
+
+Q(T12,"25.0 cm³ of 0.100 M NaOH is neutralised by 20.0 cm³ of HCl. What is [HCl]?","0.125 M",["0.0800 M","0.100 M","0.250 M"],"n(NaOH) = 0.00250 mol = n(HCl). c = 0.00250 ÷ 0.0200 = 0.125 M.");
+Q(T12,"What volume of 0.20 M NaOH neutralises 25.0 cm³ of 0.10 M H₂SO₄?","25 cm³",["12.5 cm³","50 cm³","10 cm³"],"n(H₂SO₄) = 0.0025 mol, needs 0.0050 mol NaOH (1 : 2). V = 0.0050 ÷ 0.20 = 0.025 dm³.");
+Q(T12,"2.0 g of NaOH (Mr 40.0) is fully neutralised by HCl. What mass of NaCl (Mr 58.5) forms?","2.9 g",["2.0 g","5.9 g","1.4 g"],"n(NaOH) = 0.050 mol, so n(NaCl) = 0.050 mol and mass = 0.050 × 58.5 = 2.9 g.");
+Q(T12,"10.0 cm³ of 1.0 M HCl is diluted to 1.00 dm³. What is the pH?","2.00",["1.00","3.00","0.00"],"c = 0.010 M, so pH = 2.");
+Q(T12,"At the equivalence point of ethanoic acid titrated with NaOH, the pH is…","above 7",["exactly 7","below 7","exactly 14"],"The solution contains CH₃COO⁻, a weak base, so it is slightly alkaline.");
+Q(T12,"A strong acid has pH 3.00. After diluting tenfold, its pH is…","4.00",["2.00","3.10","0.30"],"[H⁺] falls tenfold from 10⁻³ to 10⁻⁴ M.");
+Q(T12,"50.0 cm³ of 0.10 M HCl is mixed with 50.0 cm³ of 0.10 M NaOH. The pH is…","7.00",["1.00","13.00","1.30"],"Equal moles of H⁺ and OH⁻ cancel exactly, leaving a neutral salt solution.");
+Q(T12,"50.0 cm³ of 0.20 M HCl is mixed with 50.0 cm³ of 0.10 M NaOH. The pH is…","1.30",["1.00","7.00","0.70"],"Excess H⁺ = 0.0100 − 0.0050 = 0.0050 mol in 0.100 dm³ = 0.050 M. pH = 1.30.");
+
+/* ---------- quiz modal ---------- */
+var deck=[];
+function draw(){if(!deck.length)deck=shuffle(BANK);return deck.pop()}
+var modal=$("#modal"),busy=false;
+function ask(ctx){
+  return new Promise(function(done){
+    var q=draw();
+    var opts=shuffle([{t:q.a,ok:true}].concat(q.w.map(function(w){return{t:w,ok:false}})));
+    $("#mTopic").textContent=q.t;$("#mCtx").textContent=ctx||"";$("#mQ").textContent=q.q;
+    var box=$("#mOpts");box.innerHTML="";var fb=$("#mFb");fb.hidden=true;fb.innerHTML="";
+    var btns=opts.map(function(o,i){
+      var b=document.createElement("button");b.className="opt";
+      b.innerHTML='<span class="l">'+"ABCD"[i]+'</span><span></span>';
+      b.lastChild.textContent=o.t;
+      b.addEventListener("click",function(){
+        btns.forEach(function(x,j){x.disabled=true;if(opts[j].ok)x.classList.add("right")});
+        if(!o.ok)b.classList.add("wrong");
+        fb.className="fb "+(o.ok?"good":"bad");
+        fb.innerHTML="<h3></h3><p></p>";
+        fb.firstChild.textContent=o.ok?"Correct":"Not quite";
+        fb.children[1].textContent=q.e;
+        var go=document.createElement("button");go.className="btn "+(o.ok?"go":"pri");go.textContent="Continue";
+        go.addEventListener("click",function(){modal.hidden=true;if(o.ok)add(5);done(o.ok)});
+        fb.appendChild(go);fb.hidden=false;go.focus();
+        modal.firstElementChild.scrollTop=1e5;
+      });
+      box.appendChild(b);return b;
+    });
+    modal.hidden=false;btns[0].focus();modal.firstElementChild.scrollTop=0;
+  });
+}
+
+/* ---------- tabs ---------- */
+var tabs=$$(".tab");
+function show(id){
+  tabs.forEach(function(t){var on=t.id==="t-"+id;t.setAttribute("aria-selected",on)});
+  $$(".panel").forEach(function(p){p.classList.toggle("on",p.id==="p-"+id)});
+  active=id;
+}
+var active="cw";
+tabs.forEach(function(t){t.addEventListener("click",function(){show(t.id.slice(2))})});
+
+/* ---------- crossword ---------- */
+var CW=[
+ ["SALT",4,6,"A","Ionic product formed when an acid is neutralised by a base"],
+ ["LEWIS",4,2,"D","Gilbert N. ___ defined acids as electron-pair acceptors"],
+ ["BUFFER",0,3,"A","Weak acid plus its conjugate base: resists changes in pH"],
+ ["ELECTRON",7,2,"D","A Lewis base donates a pair of these"],
+ ["OXIDE",7,8,"A","Na₂O, Al₂O₃ and SO₃ are all examples; can be basic, amphoteric or acidic"],
+ ["PROTON",2,9,"A","The H⁺ particle a Brønsted–Lowry acid gives away"],
+ ["CARBONATE",0,0,"D","Anion in limestone; fizzes with acid to give off CO₂"],
+ ["NITRATE",11,2,"D","Anion whose salts are all soluble in water"],
+ ["CONJUGATE",0,0,"A","___ base: what is left after an acid loses a proton"],
+ ["HYDROXIDE",9,2,"D","OH⁻ ion that makes aqueous solutions basic"]
+];
+var cells={},words=[],cwW=0,cwH=0,cur={x:0,y:0,d:"A"},solved={},revealed={},scored={};
+CW.forEach(function(w,i){
+  var o={w:w[0],x:w[1],y:w[2],d:w[3],c:w[4],i:i,cells:[]};
+  for(var k=0;k<o.w.length;k++){
+    var x=o.x+(o.d==="A"?k:0),y=o.y+(o.d==="D"?k:0),key=x+","+y;
+    cells[key]=cells[key]||{x:x,y:y,ch:o.w[k],A:null,D:null,n:0,el:null,inp:null};
+    cells[key][o.d]=i;o.cells.push(cells[key]);
+    cwW=Math.max(cwW,x+1);cwH=Math.max(cwH,y+1);
+  }
+  words.push(o);
+});
+(function number(){
+  var starts=words.map(function(w){return w.cells[0]});
+  var uniq=[];starts.forEach(function(c){if(uniq.indexOf(c)<0)uniq.push(c)});
+  uniq.sort(function(a,b){return a.y-b.y||a.x-b.x}).forEach(function(c,i){c.n=i+1});
+  words.forEach(function(w){w.n=w.cells[0].n});
+})();
+var grid=$("#cwGrid");grid.style.gridTemplateColumns="repeat("+cwW+",1fr)";
+for(var gy=0;gy<cwH;gy++)for(var gx=0;gx<cwW;gx++){
+  var c=cells[gx+","+gy],d=document.createElement("div");d.className="cw-cell";
+  if(c){
+    d.className+=" on";c.el=d;
+    d.innerHTML=(c.n?'<span class="n">'+c.n+'</span>':'')+'<input type="text" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false" aria-label="Row '+(gy+1)+', column '+(gx+1)+'">';
+    c.inp=d.lastChild;wire(c);
+  }
+  grid.appendChild(d);
+}
+function wordOf(c,d){var i=c[d];return i===null?null:words[i]}
+function wire(c){
+  var inp=c.inp;
+  inp.addEventListener("focus",function(){inp.select()});
+  inp.addEventListener("click",function(){
+    if(cur.x===c.x&&cur.y===c.y&&c.A!==null&&c.D!==null)cur.d=cur.d==="A"?"D":"A";
+    else{cur.x=c.x;cur.y=c.y;if(c[cur.d]===null)cur.d=cur.d==="A"?"D":"A"}
+    refresh();inp.select();
+  });
+  inp.addEventListener("input",function(){
+    var v=inp.value.replace(/[^a-z]/gi,"").slice(-1).toUpperCase();inp.value=v;
+    c.el.classList.remove("bad");
+    if(v){step(c,1)}
+    evaluate();
+  });
+  inp.addEventListener("keydown",function(e){
+    var k=e.key;
+    if(k==="Backspace"){e.preventDefault();c.el.classList.remove("bad");
+      if(inp.value){inp.value="";evaluate()}else{step(c,-1,true)}return}
+    var dx=0,dy=0;
+    if(k==="ArrowLeft"){dx=-1;cur.d="A"}else if(k==="ArrowRight"){dx=1;cur.d="A"}
+    else if(k==="ArrowUp"){dy=-1;cur.d="D"}else if(k==="ArrowDown"){dy=1;cur.d="D"}
+    else if(k===" "){e.preventDefault();if(c.A!==null&&c.D!==null)cur.d=cur.d==="A"?"D":"A";refresh();return}
+    else if(k==="Tab"){e.preventDefault();jump(e.shiftKey?-1:1);return}
+    else return;
+    e.preventDefault();
+    var n=cells[(c.x+dx)+","+(c.y+dy)];
+    if(n){cur.x=n.x;cur.y=n.y;if(n[cur.d]===null)cur.d=cur.d==="A"?"D":"A";n.inp.focus()}
+    refresh();
+  });
+}
+function step(c,dir,clear){
+  var w=wordOf(c,cur.d)||wordOf(c,cur.d==="A"?"D":"A");if(!w)return;
+  var i=w.cells.indexOf(c)+dir,n=w.cells[i];
+  if(n){cur.x=n.x;cur.y=n.y;n.inp.focus();if(clear){n.inp.value="";n.el.classList.remove("bad");evaluate()}refresh()}
+}
+function curWord(){var c=cells[cur.x+","+cur.y];return wordOf(c,cur.d)||wordOf(c,cur.d==="A"?"D":"A")}
+var order=words.map(function(w,i){return i}).sort(function(a,b){var x=words[a],y=words[b];return (x.d===y.d?0:x.d==="A"?-1:1)||x.n-y.n});
+function jump(dir){
+  var w=curWord(),p=order.indexOf(w.i),n=words[order[(p+dir+order.length)%order.length]];
+  cur.x=n.cells[0].x;cur.y=n.cells[0].y;cur.d=n.d;n.cells[0].inp.focus();refresh();
+}
+function selectWord(i){var n=words[i];cur.x=n.cells[0].x;cur.y=n.cells[0].y;cur.d=n.d;n.cells[0].inp.focus();refresh()}
+function refresh(){
+  var w=curWord();if(w)cur.d=w.d;
+  Object.keys(cells).forEach(function(k){var c=cells[k];c.el.classList.remove("hl","cur")});
+  if(w){w.cells.forEach(function(c){c.el.classList.add("hl")});}
+  var cc=cells[cur.x+","+cur.y];if(cc)cc.el.classList.add("cur");
+  if(w){$("#cwLbl").textContent=w.n+" "+(w.d==="A"?"ACROSS":"DOWN");$("#cwTxt").textContent=w.c+" ("+w.w.length+")"}
+  words.forEach(function(x){var li=$("#cl"+x.i);li.classList.toggle("active",w&&w.i===x.i)});
+}
+words.forEach(function(w){
+  var li=document.createElement("li");li.id="cl"+w.i;
+  li.innerHTML='<button><span class="k">'+w.n+'</span><span class="c"></span><span class="len">('+w.w.length+')</span></button>';
+  $(".c",li).textContent=w.c;
+  li.firstChild.addEventListener("click",function(){selectWord(w.i)});
+  $(w.d==="A"?"#clA":"#clD").appendChild(li);
+});
+function evaluate(){
+  var n=0;
+  words.forEach(function(w){
+    var ok=w.cells.every(function(c){return c.inp.value===c.ch});
+    solved[w.i]=ok;
+    if(ok){n++;if(!scored[w.i]){scored[w.i]=true;
+      if(!w.cells.some(function(c){return revealed[c.x+","+c.y]}))add(10)}}
+    $("#cl"+w.i).classList.toggle("done",ok);
+  });
+  Object.keys(cells).forEach(function(k){
+    var c=cells[k],ok=(c.A!==null&&solved[c.A])||(c.D!==null&&solved[c.D]);
+    c.el.classList.toggle("ok",!!ok);
+  });
+  S.cw=n;paint();
+  if(n===words.length&&!evaluate.won){evaluate.won=true;say("cwSay","Crossword complete. Every reagent is in place.","good");confetti()}
+}
+function say(id,t,k){var e=$("#"+id);e.textContent=t;e.className="say "+(k||"")}
+$("#cwCheck").addEventListener("click",function(){
+  var wrong=0,empty=0;
+  Object.keys(cells).forEach(function(k){var c=cells[k];
+    if(!c.inp.value){empty++;return}
+    if(c.inp.value!==c.ch){c.el.classList.add("bad");wrong++}});
+  if(wrong)say("cwSay",wrong+" letter"+(wrong>1?"s are":" is")+" wrong. They are shaded red.","bad");
+  else say("cwSay",empty?"Everything typed so far is right. "+empty+" squares still empty.":"All correct.","good");
+});
+$("#cwHintL").addEventListener("click",function(){
+  var c=cells[cur.x+","+cur.y];c.inp.value=c.ch;revealed[cur.x+","+cur.y]=true;c.el.classList.remove("bad");evaluate();step(c,1);
+});
+$("#cwHintW").addEventListener("click",function(){
+  var w=curWord();w.cells.forEach(function(c){c.inp.value=c.ch;revealed[c.x+","+c.y]=true;c.el.classList.remove("bad")});evaluate();
+});
+$("#cwReset").addEventListener("click",function(){
+  Object.keys(cells).forEach(function(k){cells[k].inp.value="";cells[k].el.classList.remove("bad")});
+  revealed={};evaluate.won=false;say("cwSay","","");evaluate();
+});
+$("#cwPrev").addEventListener("click",function(){jump(-1)});
+$("#cwNext").addEventListener("click",function(){jump(1)});
+cur.x=words[8].cells[0].x;cur.y=words[8].cells[0].y;cur.d="A";refresh();
+
+/* ---------- tic-tac-toe ---------- */
+var board=[],over=false,rec={W:0,D:0,L:0},LINES=[[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+var tb=$("#tttBoard");
+function tWin(b){for(var i=0;i<8;i++){var l=LINES[i];if(b[l[0]]&&b[l[0]]===b[l[1]]&&b[l[1]]===b[l[2]])return{p:b[l[0]],l:l}}return null}
+function tRender(w){
+  tb.innerHTML="";
+  board.forEach(function(v,i){
+    var b=document.createElement("button");b.className="ttt-cell";b.setAttribute("aria-label","Square "+(i+1)+(v?(v==="X"?", yours":", hydroxide"):", empty"));
+    if(v)b.innerHTML='<i class="atom '+(v==="X"?"h":"oh")+'">'+(v==="X"?"H⁺":"OH⁻")+'</i>';
+    else b.innerHTML='<span class="q">?</span>';
+    b.disabled=!!v||over||busy;
+    if(w&&w.l.indexOf(i)>=0)b.classList.add("win");
+    b.addEventListener("click",function(){tPick(i)});
+    tb.appendChild(b);
+  });
+}
+function tNew(){board=[0,0,0,0,0,0,0,0,0].map(function(){return ""});over=false;busy=false;say("tttSay","Your move. Pick a square.","");tRender()}
+function tEnd(){
+  var w=tWin(board);
+  if(w){over=true;tRender(w);
+    if(w.p==="X"){rec.W++;S.t++;add(25);say("tttSay","Three protons in a row. You win the duel.","good");confetti()}
+    else{rec.L++;say("tttSay","Hydroxide completes a line. Try a new duel.","bad")}
+    tStats();return true}
+  if(board.every(function(v){return v})){over=true;rec.D++;add(8);say("tttSay","Board full. It is a draw.","");tStats();tRender();return true}
+  return false;
+}
+function tStats(){$("#tW").textContent=rec.W;$("#tD").textContent=rec.D;$("#tL").textContent=rec.L}
+function tAI(){
+  var free=[];board.forEach(function(v,i){if(!v)free.push(i)});
+  function tryFor(p){for(var i=0;i<free.length;i++){var b=board.slice();b[free[i]]=p;if(tWin(b))return free[i]}return -1}
+  var m=tryFor("O");if(m<0)m=tryFor("X");
+  if(m<0&&!board[4])m=4;
+  if(m<0){var cs=free.filter(function(i){return [0,2,6,8].indexOf(i)>=0});if(cs.length)m=cs[Math.floor(Math.random()*cs.length)]}
+  if(m<0)m=free[Math.floor(Math.random()*free.length)];
+  board[m]="O";
+}
+function tPick(i){
+  if(busy||over||board[i])return;
+  busy=true;tRender();
+  ask("Win square "+(i+1)).then(function(ok){
+    board[i]=ok?"X":"O";
+    say("tttSay",ok?"Square won. Hydroxide is thinking…":"Wrong. Hydroxide takes square "+(i+1)+".",ok?"good":"bad");
+    tRender();
+    if(tEnd()){busy=false;return}
+    if(!ok){busy=false;tRender();return}
+    setTimeout(function(){
+      tAI();busy=false;
+      if(!tEnd()){say("tttSay","Your move.","");tRender()}
+    },550);
+  });
+}
+$("#tttNew").addEventListener("click",function(){if(!busy)tNew()});
+tNew();
+
+/* ---------- maze ---------- */
+var N=11,mz,player,gates,seen,moves,best=null,mDone=false,prev=null,mzEl=$("#mz");
+var DIRS={u:[0,-1],d:[0,1],l:[-1,0],r:[1,0]};
+function genMaze(){
+  var g=[];for(var y=0;y<N;y++){g[y]=[];for(var x=0;x<N;x++)g[y][x]={t:true,r:true,b:true,l:true,v:false}}
+  var st=[[0,0]];g[0][0].v=true;
+  while(st.length){
+    var c=st[st.length-1],opts=[];
+    [["u",0,-1,"t","b"],["d",0,1,"b","t"],["l",-1,0,"l","r"],["r",1,0,"r","l"]].forEach(function(d){
+      var nx=c[0]+d[1],ny=c[1]+d[2];
+      if(nx>=0&&ny>=0&&nx<N&&ny<N&&!g[ny][nx].v)opts.push([nx,ny,d[3],d[4]]);
+    });
+    if(!opts.length){st.pop();continue}
+    var o=opts[Math.floor(Math.random()*opts.length)];
+    g[c[1]][c[0]][o[2]]=false;g[o[1]][o[0]][o[3]]=false;g[o[1]][o[0]].v=true;st.push([o[0],o[1]]);
+  }
+  return g;
+}
+function solve(g){
+  var q=[[0,0]],par={"0,0":null};
+  while(q.length){
+    var c=q.shift();if(c[0]===N-1&&c[1]===N-1)break;
+    for(var k in DIRS){var d=DIRS[k];if(!canGo(g,c[0],c[1],k))continue;
+      var nx=c[0]+d[0],ny=c[1]+d[1],key=nx+","+ny;
+      if(!(key in par)){par[key]=c;q.push([nx,ny])}}
+  }
+  var path=[],cc=[N-1,N-1];
+  while(cc){path.unshift(cc);cc=par[cc[0]+","+cc[1]]}
+  return path;
+}
+function canGo(g,x,y,k){
+  var c=g[y][x];
+  if(k==="u")return !c.t;if(k==="l")return !c.l;if(k==="d")return !c.b;return !c.r;
+}
+function mNew(){
+  mz=genMaze();
+  var path=solve(mz);gates={};
+  [.25,.5,.75].forEach(function(f){var p=path[Math.floor(path.length*f)];gates[p[0]+","+p[1]]=false});
+  player=[0,0];prev=[0,0];seen={"0,0":true};moves=0;mDone=false;busy=false;
+  say("mzSay","Use the arrow keys, WASD or the pad.","");mRender();
+}
+function mRender(){
+  var html="";
+  for(var y=0;y<N;y++)for(var x=0;x<N;x++){
+    var c=mz[y][x],key=x+","+y,cls="mz-c"+(y>0&&c.t?" t":"")+(x>0&&c.l?" l":"")+(seen[key]&&!(player[0]===x&&player[1]===y)?" seen":""),inner="";
+    if(key in gates&&!(player[0]===x&&player[1]===y&&gates[key]===false))inner+='<div class="mz-gate'+(gates[key]?" open":"")+'">'+(gates[key]?"✓":"?")+'</div>';
+    if(x===N-1&&y===N-1&&!(player[0]===x&&player[1]===y))inner+='<div class="mz-exit">pH 7</div>';
+    if(x===0&&y===0&&!(player[0]===0&&player[1]===0))inner+='<span class="mz-start">pH 1</span>';
+    if(player[0]===x&&player[1]===y)inner+='<i class="atom h">H⁺</i>';
+    html+='<div class="'+cls+'">'+inner+'</div>';
+  }
+  mzEl.innerHTML=html;
+  var open=0;for(var k in gates)if(gates[k])open++;
+  $("#mMoves").textContent=moves;$("#mGates").textContent=open+"/3";$("#mBest").textContent=best===null?"–":best;
+}
+function mMove(k){
+  if(busy||mDone||!modal.hidden)return;
+  var x=player[0],y=player[1];
+  if(!canGo(mz,x,y,k)){say("mzSay","A wall blocks that way.","");return}
+  var d=DIRS[k],nx=x+d[0],ny=y+d[1],key=nx+","+ny;
+  prev=[x,y];moves++;
+  if(key in gates&&!gates[key]){
+    busy=true;player=[nx,ny];mRender();
+    ask("Locked gate").then(function(ok){
+      busy=false;
+      if(ok){gates[key]=true;seen[key]=true;say("mzSay","Gate unlocked. Keep going.","good")}
+      else{player=prev;say("mzSay","The gate stays shut and you slide back. Try again.","bad")}
+      mRender();
+    });
+    return;
+  }
+  player=[nx,ny];seen[key]=true;
+  if(nx===N-1&&ny===N-1){
+    mDone=true;S.m++;add(30);if(best===null||moves<best)best=moves;
+    say("mzSay","Neutralised in "+moves+" moves. The proton reaches pH 7.","good");confetti();
+  }else say("mzSay","","");
+  mRender();
+}
+mzEl.addEventListener("click",function(){mzEl.focus()});
+document.addEventListener("keydown",function(e){
+  if(active!=="mz"||e.ctrlKey||e.metaKey||e.altKey)return;
+  var map={ArrowUp:"u",ArrowDown:"d",ArrowLeft:"l",ArrowRight:"r",w:"u",s:"d",a:"l",d:"r",W:"u",S:"d",A:"l",D:"r"};
+  if(map[e.key]){e.preventDefault();mMove(map[e.key])}
+});
+$$(".dpad button").forEach(function(b){b.addEventListener("click",function(){mMove(b.dataset.d)})});
+$("#mzNew").addEventListener("click",function(){if(!busy)mNew()});
+mNew();
+
+/* ---------- salt planner ---------- */
+var STEPS={
+ p:["Dissolve the two soluble reactants in separate solutions.","Mix them: the insoluble salt forms as a precipitate.","Filter, then wash the residue with distilled water to remove soluble by-products.","Dry the solid between filter papers or in a warm oven."],
+ t:["Pipette a fixed volume of the alkali into a flask and add a few drops of indicator.","Add the acid from a burette until the colour just changes. Record the volume.","Repeat with the same volumes and no indicator.","Evaporate to the point of saturation, cool to crystallise, filter, wash with a little cold distilled water and dry."],
+ b:["Warm the dilute acid in a beaker.","Add the solid in small portions until some remains undissolved (excess).","Filter to remove the excess solid.","Evaporate the filtrate until saturated, cool to crystallise, filter, wash with a little cold distilled water and dry."],
+ m:["Warm the dilute acid in a beaker.","Add the metal in small pieces until bubbling of hydrogen stops and some metal remains.","Filter to remove the excess metal.","Evaporate the filtrate until saturated, cool to crystallise, filter, wash with a little cold distilled water and dry."]
+};
+var SALTS=[
+ ["BaSO₄","p","Precipitation","BaCl₂(aq) + Na₂SO₄(aq) → BaSO₄(s) + 2NaCl(aq)","BaSO₄ is one of the insoluble sulfates."],
+ ["AgCl","p","Precipitation","AgNO₃(aq) + NaCl(aq) → AgCl(s) + NaNO₃(aq)","Silver chloride is insoluble. Nitrates are always soluble."],
+ ["PbI₂","p","Precipitation","Pb(NO₃)₂(aq) + 2KI(aq) → PbI₂(s) + 2KNO₃(aq)","Lead iodide is a yellow precipitate."],
+ ["CuCO₃","p","Precipitation","CuSO₄(aq) + Na₂CO₃(aq) → CuCO₃(s) + Na₂SO₄(aq)","Carbonates are insoluble except Group I and ammonium."],
+ ["NaCl","t","Titration","NaOH(aq) + HCl(aq) → NaCl(aq) + H₂O(l)","Sodium hydroxide and hydrochloric acid are both soluble, so the excess cannot be filtered off."],
+ ["KNO₃","t","Titration","KOH(aq) + HNO₃(aq) → KNO₃(aq) + H₂O(l)","Group I salts need a titration because K and its base are soluble."],
+ ["(NH₄)₂SO₄","t","Titration","2NH₃(aq) + H₂SO₄(aq) → (NH₄)₂SO₄(aq)","Ammonium salts are made by titrating aqueous ammonia with an acid."],
+ ["CuSO₄","b","Acid + insoluble base","CuO(s) + H₂SO₄(aq) → CuSO₄(aq) + H₂O(l)","Copper(II) oxide is insoluble, so the excess is filtered off. Copper metal would not react."],
+ ["Ca(NO₃)₂","b","Acid + insoluble carbonate","CaCO₃(s) + 2HNO₃(aq) → Ca(NO₃)₂(aq) + H₂O(l) + CO₂(g)","Fizzing stops when the acid is used up."],
+ ["ZnSO₄","m","Acid + metal","Zn(s) + H₂SO₄(aq) → ZnSO₄(aq) + H₂(g)","Zinc reacts at a safe rate. ZnO or ZnCO₃ with the acid also works."],
+ ["MgCl₂","m","Acid + metal","Mg(s) + 2HCl(aq) → MgCl₂(aq) + H₂(g)","Magnesium reacts quickly but safely with dilute acid."],
+ ["FeSO₄","m","Acid + metal","Fe(s) + H₂SO₄(aq) → FeSO₄(aq) + H₂(g)","Iron filings in dilute acid give iron(II) sulfate."]
+];
+var sel=$("#saltSel");
+SALTS.forEach(function(s,i){var o=document.createElement("option");o.value=i;o.textContent=s[0];sel.appendChild(o)});
+function recipe(){
+  var s=SALTS[+sel.value],r=$("#recipe");
+  r.innerHTML='<div><span class="tag m"></span></div><div class="eq"></div><ol></ol><div class="why"></div>';
+  $(".tag",r).textContent=s[2];$(".eq",r).textContent=s[3];$(".why",r).textContent=s[4];
+  STEPS[s[1]].forEach(function(t){var li=document.createElement("li");li.textContent=t;$("ol",r).appendChild(li)});
+}
+sel.addEventListener("change",recipe);recipe();
+paint();
+})();
+</script>
+
+</body></html>
